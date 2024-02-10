@@ -1,0 +1,190 @@
+#| include: false
+#| warning: false
+#| message: false
+
+library(tidyverse)
+library(palmerpenguins)
+library(knitr)
+library(kableExtra)
+
+#### Load Data ####
+incentive_data <-
+  read_csv(
+    file = "data/analysis_data/food_data.csv",
+    show_col_types = FALSE,
+    # skip = 1
+  )
+
+# Filter data for Figure 2 and 3
+private_data <- incentive_data|>
+  filter(private == 1)
+
+public_data <- incentive_data|>
+  filter(private == 0)
+
+
+#https://tellingstorieswithdata.com/11-eda.html#united-states-population-and-income-data
+incentive_data_sum <-
+  incentive_data |>
+  as_tibble() |>
+  mutate(state = rownames(incentive_data)) |>
+  select(public, incentive, table_incentive_pr, table_size, male, black, grade, hispanic, free)
+
+# Change all column contains '999' to NA
+incentive_data_sum[incentive_data_sum == 999] <- NA
+
+# Public-0-no incentive: Children in the public treatment in which none of the grape cards were incentivized.
+public_0_no_incentive <- incentive_data_sum |>
+  filter(public == 1 & table_incentive_pr == 0)
+
+
+
+# Calculate mean values for each numeric column excluding NAs
+#https://www.r-bloggers.com/2023/07/exploring-data-with-colmeans-in-r-a-programmers-guide/
+mean_values <- colMeans(public_0_no_incentive, na.rm = TRUE)
+
+# Round mean values to two decimal places
+mean_values <- round(mean_values, 2)
+
+# Get the total number of rows
+total_rows <- nrow(public_0_no_incentive)
+
+# Create a new data frame with the mean values and total rows
+sum_table <- data.frame(
+  Group = 'Public-0',
+  Variable = names(mean_values),
+  Mean = mean_values,
+  Observations = total_rows
+)
+sum_table_wide <- pivot_wider(sum_table, names_from = "Variable", values_from = "Mean")
+
+
+
+# Public-50-no incentive: Children in the public treatment in which 50 percent of the grape cards were incentivized, and the child’s own card was not incentivized. 
+public_50_no_incentive <- incentive_data_sum %>%
+  filter(public == 1 & table_incentive_pr > 0 & table_incentive_pr < 1  & incentive == 0)
+
+# Calculate mean values for each numeric column excluding NAs
+mean_values <- colMeans(public_50_no_incentive, na.rm = TRUE)
+
+# Round mean values to two decimal places
+mean_values <- round(mean_values, 2)
+
+# Get the total number of rows
+total_rows <- nrow(public_50_no_incentive)
+
+# Create a new data frame with the mean values and total rows
+sum_table <- data.frame(
+  Group = 'Public-50-no incentive',
+  Variable = names(mean_values),
+  Mean = mean_values,
+  Observations = total_rows
+)
+
+sum_table <- pivot_wider(sum_table, names_from = "Variable", values_from = "Mean")
+
+# Append sum_table to sum_table_wide
+sum_table_wide <- rbind(sum_table_wide, sum_table)
+
+#print(sum_table_wide)
+
+
+
+# Public-50-incentive: Children in the public treatment in which 50 percent of the grape cards were incentivized, and the child’s own card was incentivized
+Public_50_incentive <- incentive_data_sum %>%
+  filter(public == 1 & table_incentive_pr > 0 & table_incentive_pr < 1  & incentive == 1)
+
+
+# Calculate mean values for each numeric column excluding NAs
+mean_values <- colMeans(Public_50_incentive, na.rm = TRUE)
+
+# Round mean values to two decimal places
+mean_values <- round(mean_values, 2)
+
+# Get the total number of rows
+total_rows <- nrow(Public_50_incentive)
+
+# Create a new data frame with the mean values and total rows
+sum_table <- data.frame(
+  Group = 'Public-50-incentive',
+  Variable = names(mean_values),
+  Mean = mean_values,
+  Observations = total_rows
+)
+
+sum_table <- pivot_wider(sum_table, names_from = "Variable", values_from = "Mean")
+
+# Append new_data to sum_table_wide
+sum_table_wide <- rbind(sum_table_wide, sum_table)
+
+#print(sum_table_wide)
+
+
+
+# Public-100-incentive: Children in the public treatment in which all of the grape cards were incentivized.
+Public_100_incentive <- incentive_data_sum %>%
+  filter(public == 1 & table_incentive_pr == 1 & incentive == 1)
+
+# Calculate mean values for each numeric column excluding NAs
+mean_values <- colMeans(Public_100_incentive, na.rm = TRUE)
+
+# Round mean values to two decimal places
+mean_values <- round(mean_values, 2)
+
+# Get the total number of rows
+total_rows <- nrow(Public_100_incentive)
+
+# Create a new data frame with the mean values and total rows
+sum_table <- data.frame(
+  Group = 'Public-100-incentive',
+  Variable = names(mean_values),
+  Mean = mean_values,
+  Observations = total_rows
+)
+
+sum_table <- pivot_wider(sum_table, names_from = "Variable", values_from = "Mean")
+
+# Append new_data to sum_table_wide
+sum_table_wide <- rbind(sum_table_wide, sum_table)
+
+#print(sum_table_wide)
+
+
+# Adding Total row
+combined_table <- rbind(public_0_no_incentive, public_50_no_incentive, Public_50_incentive, Public_100_incentive)
+
+mean_values <- colMeans(combined_table, na.rm = TRUE)
+
+# Round mean values to two decimal places
+mean_values <- round(mean_values, 2)
+
+# Get the total number of rows
+total_rows <- nrow(combined_table)
+
+# Create a new data frame with the mean values and total rows
+sum_table <- data.frame(
+  Group = 'Total',
+  Variable = names(mean_values),
+  Mean = mean_values,
+  Observations = total_rows
+)
+
+sum_table <- pivot_wider(sum_table, names_from = "Variable", values_from = "Mean")
+
+# Append new_data to sum_table_wide
+sum_table_wide <- rbind(sum_table_wide, sum_table)
+
+#print(sum_table_wide)
+
+sum_table_final <-
+  sum_table_wide |>
+  as_tibble() |>
+  mutate(state = rownames(sum_table_wide)) |>
+  select(Group, Observations, table_size, male, grade, black, hispanic, free)
+
+sum_table_final |>
+  #slice (1:10) |>
+  kable(
+    col.names = c('Group', 'Observations', 'Table Size', 'Percent of boys', 'Grade', 'Black', 'Hispanic', 'Free Lunch'),
+    digits = 3
+  )
