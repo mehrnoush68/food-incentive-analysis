@@ -1,0 +1,102 @@
+---
+title: "My title"
+subtitle: "My subtitle if needed"
+author: 
+  - Mehrnoush Mohammadi
+  - Another author
+thanks: "Code and data are available at: LINK."
+date: today
+date-format: long
+abstract: "First sentence. Second sentence. Third sentence. Fourth sentence."
+format: pdf
+number-sections: true
+bibliography: references.bib
+---
+
+```{r}
+#| include: false
+#| warning: false
+#| message: false
+
+library(tidyverse)
+library(palmerpenguins)
+library(knitr)
+library(kableExtra)
+library(ggplot2)
+```
+
+
+```{r}
+#### Load Data ####
+public_data <-
+  read_csv(
+    file = "../data/analysis_data/food_data.csv",
+    show_col_types = FALSE,
+    # skip = 1
+  )
+
+public_data <- public_data|>
+  filter(private == 0)
+
+food_choices <-
+public_data |>
+  as_tibble() |>
+  mutate(state = rownames(public_data)) |>
+  select(public, grape, grape2, male, grade)
+ 
+# Remove all column contains '999'
+food_choices <- food_choices |>
+    filter_all(all_vars(. != 999))
+
+# Add a new column named Switched
+food_choices$Switched = ifelse(food_choices$grape == 0 & food_choices$grape2 == 1, "Cookie to Grape",
+                               ifelse(food_choices$grape == 1 & food_choices$grape2 == 0, "Grape to Cookie", "Not Changed"))
+
+sample1 <- food_choices|>
+  filter(grade == 6 & Switched=='Grape to Cookie')
+sample1
+
+```
+
+```{r}
+
+# Create a bar plot
+ggplot(food_choices, aes(x = as.factor(grade), fill = Switched)) +
+  geom_bar(position = "dodge") +
+  geom_text(
+    aes(label = after_stat(count)),
+    stat = "count",
+    position = position_dodge(width = 0.9),
+    vjust = -0.5, # Adjust the vertical position of the labels
+    color = "black",
+    size = 3
+  ) +
+  labs(title = "Students Switching Food Choices",
+       x = "Grade",
+       y = "Number of Observations") +
+  scale_fill_manual(values = c("Cookie to Grape" = "green","Grape to Cookie" = "red", "Not Changed" = "blue")) +
+  scale_x_discrete(breaks = as.character(0:8)) +
+  theme_minimal()
+```
+
+```{r}
+
+food_choices$Gender = ifelse(food_choices$male == 1 , "Boy", "Girl")
+
+# Create a bar plot
+ggplot(food_choices, aes(x = Gender, fill = Switched)) +
+  geom_bar(position = "dodge") +
+  geom_text(
+    aes(label = stat(count)),
+    stat = "count",
+    position = position_dodge(width = 0.9),
+    vjust = -0.5, # Adjust the vertical position of the labels
+    color = "black",
+    size = 3
+  ) +
+  labs(title = "Students Switching Food Choices",
+       x = "Gender",
+       y = "Number of Students") +
+  scale_fill_manual(values = c("Grape to Cookie" = "red", "Cookie to Grape" = "green", "Not Changed" = "blue")) +
+  theme_minimal()
+```
